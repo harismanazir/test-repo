@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Domain Reporting Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0e17;
+    --bg2: #111827;
+    --bg3: #1a2234;
+    --bg4: #243049;
+    --border: #2a3a52;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --green: #34d399;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --orange: #fb923c;
+    --cyan: #22d3ee;
+    --pink: #f472b6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    padding: 80px 40px 60px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 50% 80%, rgba(99,102,241,0.12) 0%, transparent 50%),
+                radial-gradient(circle at 30% 20%, rgba(34,211,238,0.06) 0%, transparent 40%);
+    pointer-events: none;
+  }
+  .hero h1 {
+    font-size: 2.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff 0%, var(--accent2) 50%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .hero p {
+    color: var(--text2);
+    font-size: 1.1rem;
+    max-width: 640px;
+    margin: 0 auto 28px;
+    position: relative;
+  }
+  .badge-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.25);
+    color: var(--accent2);
+  }
+  .badge.green { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.25); color: var(--green); }
+  .badge.cyan { background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+
+  /* Layout */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* Nav */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,14,23,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+  }
+  .nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-inner::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
+
+  /* Sections */
+  .section {
+    display: none;
+    animation: fadeUp 0.35s ease;
+  }
+  .section.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 40px 0 8px;
+    color: #fff;
+  }
+  .section-sub {
+    color: var(--text2);
+    margin-bottom: 28px;
+    font-size: 0.95rem;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Flow Diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding: 20px 0;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .flow-node {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 140px;
+    transition: all 0.3s;
+    cursor: default;
+  }
+  .flow-node:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99,102,241,0.15);
+  }
+  .flow-node .icon { font-size: 1.5rem; margin-bottom: 6px; }
+  .flow-node .label { font-weight: 600; font-size: 0.85rem; }
+  .flow-node .detail { color: var(--text3); font-size: 0.72rem; margin-top: 4px; }
+  .flow-arrow {
+    color: var(--text3);
+    font-size: 1.4rem;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* Endpoint Table */
+  .endpoint-grid {
+    display: grid;
+    gap: 12px;
+  }
+  .endpoint-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .endpoint-card:hover {
+    border-color: var(--accent);
+    background: var(--bg3);
+  }
+  .endpoint-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .endpoint-left { display: flex; align-items: center; gap: 12px; }
+  .method {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(52,211,153,0.12);
+    color: var(--green);
+  }
+  .endpoint-path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+  .endpoint-desc {
+    color: var(--text2);
+    font-size: 0.82rem;
+  }
+  .endpoint-chevron {
+    color: var(--text3);
+    transition: transform 0.2s;
+    font-size: 0.9rem;
+  }
+  .endpoint-card.open .endpoint-chevron { transform: rotate(180deg); }
+  .endpoint-detail {
+    display: none;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .endpoint-card.open .endpoint-detail { display: block; }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 640px) { .detail-grid { grid-template-columns: 1fr; } }
+  .detail-item label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text3);
+    margin-bottom: 4px;
+  }
+  .detail-item span {
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
+  /* Code */
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 12px 0;
+  }
+  .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent2); }
+  pre {
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--text2);
+  }
+  pre .kw { color: var(--pink); }
+  pre .fn { color: var(--cyan); }
+  pre .str { color: var(--green); }
+  pre .cm { color: var(--text3); font-style: italic; }
+  pre .num { color: var(--orange); }
+
+  /* Cache visualization */
+  .cache-layers {
+    display: grid;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .cache-layer {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cache-layer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px;
+    height: 100%;
+  }
+  .cache-layer.l1::before { background: var(--accent); }
+  .cache-layer.l2::before { background: var(--cyan); }
+  .cache-layer.l3::before { background: var(--green); }
+  .cache-layer h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; }
+  .cache-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .cache-tag {
+    font-size: 0.75rem;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cache-tag strong { color: var(--text2); }
+
+  /* Retry Timeline */
+  .retry-timeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 24px 0;
+    overflow-x: auto;
+    justify-content: center;
+  }
+  .retry-step {
+    text-align: center;
+    position: relative;
+  }
+  .retry-circle {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin: 0 auto 8px;
+    border: 2px solid;
+  }
+  .retry-circle.a1 { border-color: var(--green); color: var(--green); background: rgba(52,211,153,0.08); }
+  .retry-circle.wait { border-color: var(--yellow); color: var(--yellow); background: rgba(251,191,36,0.08); }
+  .retry-circle.a2 { border-color: var(--cyan); color: var(--cyan); background: rgba(34,211,238,0.08); }
+  .retry-circle.a3 { border-color: var(--red); color: var(--red); background: rgba(248,113,113,0.08); }
+  .retry-label { font-size: 0.72rem; color: var(--text3); }
+  .retry-connector {
+    width: 40px;
+    height: 2px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Error table */
+  .error-grid { margin: 16px 0; }
+  .error-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    font-size: 0.85rem;
+  }
+  .error-row:first-child {
+    background: var(--bg3);
+    border-radius: 10px 10px 0 0;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text3);
+  }
+  .error-row:last-child { border-bottom: none; border-radius: 0 0 10px 10px; }
+  .pill-yes {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(52,211,153,0.12);
+    color: var(--green);
+  }
+
+  /* File tree */
+  .file-tree {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.8;
+  }
+  .file-tree .dir { color: var(--accent2); font-weight: 500; }
+  .file-tree .file { color: var(--text2); }
+  .file-tree .comment { color: var(--text3); font-size: 0.72rem; }
+
+  /* Params table */
+  .params-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.85rem;
+  }
+  .params-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--bg3);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text3);
+    font-weight: 600;
+  }
+  .params-table th:first-child { border-radius: 8px 0 0 0; }
+  .params-table th:last-child { border-radius: 0 8px 0 0; }
+  .params-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .params-table td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.82rem;
+  }
+  .params-table tr:last-child td { border-bottom: none; }
+
+  /* Classification */
+  .classify-box {
+    background: var(--bg3);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+    border-left: 4px solid var(--accent);
+  }
+  .classify-box p { font-size: 0.88rem; color: var(--text2); }
+  .classify-box code {
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--pink);
+  }
+
+  /* Deploy */
+  .deploy-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 10px 0;
+  }
+  .deploy-card h4 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+  .deploy-url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--green);
+    word-break: break-all;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.pass { background: var(--green); }
+  .status-dot.fail { background: var(--red); }
+  .status-dot.inactive { background: var(--yellow); }
+
+  .inline-code {
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--cyan);
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Domain Reporting Architecture</h1>
+  <p>Data quality reporting for a specific domain — how we fetch, cache, retry, and serve rule/asset metrics.</p>
+  <div class="badge-row">
+    <span class="badge">FastAPI</span>
+    <span class="badge green">TTLCache 5min</span>
+    <span class="badge cyan">Retry × 3</span>
+    <span class="badge">Pydantic Models</span>
+    <span class="badge green">7 Endpoints</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner" id="nav">
+    <button class="nav-btn active" data-section="overview">Overview</button>
+    <button class="nav-btn" data-section="endpoints">Endpoints</button>
+    <button class="nav-btn" data-section="params">Parameters</button>
+    <button class="nav-btn" data-section="sql">SQL Queries</button>
+    <button class="nav-btn" data-section="caching">Caching</button>
+    <button class="nav-btn" data-section="retry">Retry & Errors</button>
+    <button class="nav-btn" data-section="structure">File Structure</button>
+    <button class="nav-btn" data-section="deploy">Deployment</button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- OVERVIEW -->
+  <div class="section active" id="sec-overview">
+    <h2 class="section-title">High-Level Flow</h2>
+    <p class="section-sub">Request flows from the frontend widget through three layers before reaching the Metadata Lake House.</p>
+
+    <div class="flow">
+      <div class="flow-node">
+        <div class="icon">🖥️</div>
+        <div class="label">Frontend</div>
+        <div class="detail">Widget</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="icon">⚡</div>
+        <div class="label">FastAPI Routes</div>
+        <div class="detail">/v1/reporting/*</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="icon">🔧</div>
+        <div class="label">Service Layer</div>
+        <div class="detail">Aggregation + Cache</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="icon">🔄</div>
+        <div class="label">Enrichment Client</div>
+        <div class="detail">Retry × 3</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="icon">🗄️</div>
+        <div class="label">MDLH</div>
+        <div class="detail">Metadata Lake House</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <h3>📋 Request Lifecycle</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-label">Lifecycle Steps</span>
+        </div>
+<pre><span class="num">1.</span> HTTP Request arrives at route handler
+<span class="num">2.</span> <span class="fn">Route Handler</span> validates domain_guid is a UUID
+   └─ Invalid → <span class="str">400</span> {"success": false, "errorMessage": "..."}
+<span class="num">3.</span> <span class="fn">Service Function</span> checks parsed data cache (TTLCache)
+   ├─ Cache HIT → return cached data
+   ├─ Cache MISS → build SQL, check raw result cache
+   ├─ Raw MISS → call Enrichment Studio Client
+   ├─ Parse rows → store in both caches
+   ├─ Apply in-memory filters (dimension, template, status)
+   ├─ Aggregate (group by dimension/template)
+   └─ Paginate (slice by offset:offset+limit)
+<span class="num">4.</span> Return Pydantic response model → <span class="str">JSON</span></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔗 Domain Rule Discovery</h3>
+      <p style="color: var(--text2); font-size: 0.88rem; margin-bottom: 12px;">Rules belong to a domain in two ways:</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="background: var(--bg); border-radius: 10px; padding: 16px; border-left: 3px solid var(--accent);">
+          <strong style="font-size: 0.82rem;">Direct</strong>
+          <p style="color: var(--text3); font-size: 0.8rem; margin-top: 4px;">rule.<span class="inline-code">domainguids</span> contains the domain_guid</p>
+        </div>
+        <div style="background: var(--bg); border-radius: 10px; padding: 16px; border-left: 3px solid var(--cyan);">
+          <strong style="font-size: 0.82rem;">Indirect</strong>
+          <p style="color: var(--text3); font-size: 0.8rem; margin-top: 4px;">Rule's base dataset qualified name matches a Table/View/MaterialisedView in the domain</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Rule Status Categories</h3>
+      <p style="color: var(--text2); font-size: 0.88rem; margin-bottom: 12px;">All queries filter with <span class="inline-code">WHERE r.status = 'ACTIVE'</span>. Among active rules:</p>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <div style="display:flex; align-items:center; gap:8px;"><span class="status-dot pass"></span> <strong style="font-size:0.85rem;">PASS</strong> <span style="color:var(--text3); font-size:0.8rem;">→ passed</span></div>
+        <div style="display:flex; align-items:center; gap:8px;"><span class="status-dot fail"></span> <strong style="font-size:0.85rem;">FAIL</strong> <span style="color:var(--text3); font-size:0.8rem;">→ failed</span></div>
+        <div style="display:flex; align-items:center; gap:8px;"><span class="status-dot inactive"></span> <strong style="font-size:0.85rem;">NULL/other</strong> <span style="color:var(--text3); font-size:0.8rem;">→ inactive</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENDPOINTS -->
+  <div class="section" id="sec-endpoints">
+    <h2 class="section-title">API Endpoints</h2>
+    <p class="section-sub">All endpoints are under <span class="inline-code">/v1/reporting</span> and require <span class="inline-code">domain_guid</span> as a query parameter (UUID).</p>
+
+    <div class="endpoint-grid" id="endpointGrid"></div>
+  </div>
+
+  <!-- PARAMS -->
+  <div class="section" id="sec-params">
+    <h2 class="section-title">Query Parameters</h2>
+    <p class="section-sub">Shared and endpoint-specific parameters for filtering, pagination, and display control.</p>
+    <div class="card" style="overflow-x: auto;">
+      <table class="params-table">
+        <thead>
+          <tr><th>Parameter</th><th>Used By</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>domain_guid</td><td>All endpoints</td><td>Required. UUID of the domain.</td></tr>
+          <tr><td>status_by</td><td>/dimensions, /dimensions/{dim}/templates</td><td><code>rules</code> (default) or <code>assets</code> — determines counting method.</td></tr>
+          <tr><td>status</td><td>/rules, /asset-status</td><td>Filter: <code>passed</code>, <code>failed</code>, or <code>inactive</code>.</td></tr>
+          <tr><td>dimension</td><td>/rules, /asset-status</td><td>Dimension name filter (case-insensitive).</td></tr>
+          <tr><td>template</td><td>/rules, /asset-status</td><td>Template name filter (case-insensitive).</td></tr>
+          <tr><td>has_rules</td><td>/assets, /connectors</td><td><code>true</code> = only assets with rules, <code>false</code> = only without.</td></tr>
+          <tr><td>limit</td><td>/rules, /asset-status</td><td>Page size (1–500, default 50).</td></tr>
+          <tr><td>offset</td><td>/rules, /asset-status</td><td>Pagination offset (default 0).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SQL -->
+  <div class="section" id="sec-sql">
+    <h2 class="section-title">SQL Queries</h2>
+    <p class="section-sub">Three core queries power the entire reporting system.</p>
+
+    <div class="card">
+      <h3>1️⃣ Summary SQL — <span style="color:var(--text3); font-weight:400; font-size:0.85rem;">Used by /rule-status</span></h3>
+      <p style="color: var(--text2); font-size: 0.88rem; margin-bottom: 12px;">Returns a single row with aggregate pass/fail/inactive counts.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-label">SQL</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><span class="cm">-- Shared CTE: find all rule GUIDs for the domain</span>
+<span class="kw">SELECT</span>
+    <span class="fn">COUNT</span>(*) <span class="kw">AS</span> total_rules,
+    <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> category = <span class="str">'passed'</span> <span class="kw">THEN</span> <span class="num">1</span> <span class="kw">ELSE</span> <span class="num">0</span> <span class="kw">END</span>) <span class="kw">AS</span> passed,
+    <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> category = <span class="str">'failed'</span> <span class="kw">THEN</span> <span class="num">1</span> <span class="kw">ELSE</span> <span class="num">0</span> <span class="kw">END</span>) <span class="kw">AS</span> failed,
+    <span class="fn">COUNT</span>(*) - passed - failed <span class="kw">AS</span> inactive
+<span class="kw">FROM</span> domain_rules</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>2️⃣ Detail SQL — <span style="color:var(--text3); font-weight:400; font-size:0.85rem;">Used by 5 endpoints</span></h3>
+      <p style="color: var(--text2); font-size: 0.88rem; margin-bottom: 12px;">Returns one row per active rule with guid, category, dimension, template, and qualified name.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-label">SQL</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><span class="kw">SELECT</span> guid, category, dqruledimension,
+       dqruletemplatename, dqrulebasedatasetqualifiedname
+<span class="kw">FROM</span> domain_rules
+<span class="kw">ORDER BY</span> category, guid</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>3️⃣ Domain Assets SQL — <span style="color:var(--text3); font-weight:400; font-size:0.85rem;">Used by /assets, /connectors</span></h3>
+      <p style="color: var(--text2); font-size: 0.88rem; margin-bottom: 12px;">Returns one row per asset (Table, View, MaterialisedView) with a <span class="inline-code">has_rules</span> boolean flag.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-label">SQL</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><span class="kw">SELECT</span>
+    domain_assets.qualifiedname,
+    domain_assets.connectorname,
+    domain_assets.databasename,
+    domain_assets.schemaname,
+    domain_assets.asset_type,
+    <span class="kw">CASE WHEN</span> rule_base_qns.rule_qn <span class="kw">IS NOT NULL</span>
+         <span class="kw">THEN</span> <span class="str">true</span> <span class="kw">ELSE</span> <span class="str">false</span> <span class="kw">END AS</span> has_rules
+<span class="kw">FROM</span> domain_assets
+<span class="kw">LEFT JOIN</span> rule_base_qns
+  <span class="kw">ON</span> domain_assets.qualifiedname = rule_base_qns.rule_qn</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- CACHING -->
+  <div class="section" id="sec-caching">
+    <h2 class="section-title">Caching Strategy</h2>
+    <p class="section-sub">Two TTLCache layers prevent redundant MDLH queries. Within 5 minutes of the first query, all endpoints reuse cached data with zero MDLH calls.</p>
+
+    <div class="cache-layers">
+      <div class="cache-layer l1">
+        <h4>Layer 1 — Raw MDLH Response Cache</h4>
+        <p style="color: var(--text2); font-size: 0.85rem;">Caches raw responses keyed by SHA256 hash of the SQL query.</p>
+        <div class="cache-meta">
+          <span class="cache-tag">Key: <strong>SHA256(sql_query)</strong></span>
+          <span class="cache-tag">Value: <strong>{columns, rows, row_count}</strong></span>
+          <span class="cache-tag">TTL: <strong>300s</strong></span>
+          <span class="cache-tag">Max: <strong>256 entries</strong></span>
+        </div>
+      </div>
+      <div class="cache-layer l2">
+        <h4>Layer 2 — Parsed Detail Data Cache</h4>
+        <p style="color: var(--text2); font-size: 0.85rem;">Parsed list of rule dicts from detail query, reused by 5 endpoints.</p>
+        <div class="cache-meta">
+          <span class="cache-tag">Key: <strong>domain_guid</strong></span>
+          <span class="cache-tag">Value: <strong>list[dict]</strong></span>
+          <span class="cache-tag">TTL: <strong>300s</strong></span>
+          <span class="cache-tag">Max: <strong>256 entries</strong></span>
+        </div>
+      </div>
+      <div class="cache-layer l3">
+        <h4>Layer 3 — Domain Assets Cache</h4>
+        <p style="color: var(--text2); font-size: 0.85rem;">Parsed asset dicts reused by /assets and /connectors endpoints.</p>
+        <div class="cache-meta">
+          <span class="cache-tag">Key: <strong>domain_guid</strong></span>
+          <span class="cache-tag">Value: <strong>list[dict]</strong></span>
+          <span class="cache-tag">TTL: <strong>300s</strong></span>
+          <span class="cache-tag">Max: <strong>256 entries</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔄 Cache Flow for Detail Data</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-label">Cache Resolution</span></div>
+<pre><span class="fn">_fetch_detail_data</span>(domain_guid)
+  ├─ Check <span class="str">_detail_cache[domain_guid]</span>  → <span class="kw">HIT</span> → return
+  ├─ Build SQL
+  ├─ Check <span class="str">_cache[SHA256(sql)]</span>         → <span class="kw">HIT</span> → parse, store in _detail_cache, return
+  ├─ Query Enrichment Studio           → store in _cache
+  └─ Parse, store in _detail_cache, return</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- RETRY & ERRORS -->
+  <div class="section" id="sec-retry">
+    <h2 class="section-title">Retry & Error Handling</h2>
+    <p class="section-sub">The EnrichmentStudioClient retries all errors up to 3 times with exponential backoff.</p>
+
+    <div class="card">
+      <h3>⏱️ Retry Timeline</h3>
+      <div class="retry-timeline">
+        <div class="retry-step">
+          <div class="retry-circle a1">1</div>
+          <div class="retry-label">Attempt 1</div>
+        </div>
+        <div class="retry-connector"></div>
+        <div class="retry-step">
+          <div class="retry-circle wait">1s</div>
+          <div class="retry-label">Backoff</div>
+        </div>
+        <div class="retry-connector"></div>
+        <div class="retry-step">
+          <div class="retry-circle a2">2</div>
+          <div class="retry-label">Attempt 2</div>
+        </div>
+        <div class="retry-connector"></div>
+        <div class="retry-step">
+          <div class="retry-circle wait">2s</div>
+          <div class="retry-label">Backoff</div>
+        </div>
+        <div class="retry-connector"></div>
+        <div class="retry-step">
+          <div class="retry-circle a2">3</div>
+          <div class="retry-label">Attempt 3</div>
+        </div>
+        <div class="retry-connector"></div>
+        <div class="retry-step">
+          <div class="retry-circle a3">✕</div>
+          <div class="retry-label">Raise Exception</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🚨 Error Types</h3>
+      <div class="error-grid">
+        <div class="error-row" style="background: var(--bg3); border-radius: 10px 10px 0 0;">
+          <span>Error Type</span><span>Retried?</span><span>Exception</span>
+        </div>
+        <div class="error-row"><span>400 Bad Request</span><span class="pill-yes">Yes</span><span style="color:var(--orange)">EnrichmentStudioQueryError</span></div>
+        <div class="error-row"><span>503 Service Unavailable</span><span class="pill-yes">Yes</span><span style="color:var(--red)">EnrichmentStudioConnectionError</span></div>
+        <div class="error-row"><span>Other HTTP (500, etc.)</span><span class="pill-yes">Yes</span><span style="color:var(--yellow)">EnrichmentStudioError</span></div>
+        <div class="error-row"><span>Connection Refused</span><span class="pill-yes">Yes</span><span style="color:var(--red)">EnrichmentStudioConnectionError</span></div>
+        <div class="error-row" style="border-radius: 0 0 10px 10px;"><span>Timeout</span><span class="pill-yes">Yes</span><span style="color:var(--red)">EnrichmentStudioConnectionError</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📡 Error Flow Through Layers</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-label">Error Propagation</span></div>
+<pre><span class="fn">Enrichment Studio Client</span>
+  │  raises EnrichmentStudioError / ConnectionError / QueryError
+  ▼
+<span class="fn">Service Layer</span>
+  │  lets exceptions bubble up (no catch)
+  ▼
+<span class="fn">Route Layer</span> (<span class="str">_handle_enrichment_errors</span>)
+  ├─ ConnectionError → <span class="num">503</span> <span class="str">"MDLH service unavailable"</span>
+  ├─ QueryError      → <span class="num">400</span> <span class="str">"Query error: {details}"</span>
+  └─ Any other       → <span class="num">500</span> <span class="str">"an internal error just occurred"</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILE STRUCTURE -->
+  <div class="section" id="sec-structure">
+    <h2 class="section-title">File Structure</h2>
+    <p class="section-sub">Organized by responsibility: clients, routes, schemas, services, and tests.</p>
+
+    <div class="file-tree">
+<span class="dir">app/</span>
+├── <span class="dir">clients/</span>
+│   └── <span class="file">enrichment_studio.py</span>       <span class="comment"># HTTP client, retry logic, exceptions</span>
+├── <span class="dir">routes/v1/</span>
+│   └── <span class="file">domain_reporting.py</span>        <span class="comment"># 7 FastAPI endpoints, validation, error mapping</span>
+├── <span class="dir">schemas/v1/</span>
+│   ├── <span class="file">domain_assets.py</span>           <span class="comment"># OverviewResponse, ConnectorsResponse</span>
+│   └── <span class="file">domain_rules_summary.py</span>    <span class="comment"># All rule/dimension/template/asset schemas</span>
+├── <span class="dir">services/</span>
+│   ├── <span class="file">domain_assets.py</span>           <span class="comment"># Assets SQL, overview, connectors</span>
+│   └── <span class="file">domain_rules_summary.py</span>    <span class="comment"># Rules SQL, all aggregation functions</span>
+└── <span class="file">settings.py</span>                    <span class="comment"># Enrichment studio URL config</span>
+
+<span class="dir">tests/unit/</span>
+├── <span class="dir">clients/</span>
+│   └── <span class="file">test_enrichment_studio.py</span>  <span class="comment"># Retry, error, success tests</span>
+├── <span class="dir">routes/v1/</span>
+│   └── <span class="file">test_domain_reporting.py</span>   <span class="comment"># Route integration tests</span>
+└── <span class="dir">services/</span>
+    ├── <span class="file">test_domain_assets.py</span>      <span class="comment"># Asset service tests</span>
+    └── <span class="file">test_domain_rules_summary.py</span> <span class="comment"># Rules service tests</span>
+    </div>
+  </div>
+
+  <!-- DEPLOY -->
+  <div class="section" id="sec-deploy">
+    <h2 class="section-title">Deployment</h2>
+    <p class="section-sub">Root path and Enrichment Studio connection details.</p>
+
+    <div class="card">
+      <h3>🌐 Deployed URL Pattern</h3>
+      <div class="deploy-card">
+        <h4>Full URL</h4>
+        <div class="deploy-url">https://&lt;tenant&gt;.atlan.com/api/data-quality-studio/v1/reporting/&lt;endpoint&gt;?domain_guid=&lt;UUID&gt;</div>
+      </div>
+      <div class="code-block" style="margin-top: 12px;">
+        <div class="code-header"><span class="code-label">main.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre>application.server.app.<span class="fn">root_path</span> = <span class="str">"/api/data-quality-studio"</span>
+application.server.app.<span class="fn">include_router</span>(main_router)  <span class="cm"># includes /v1/reporting/*</span></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔗 Enrichment Studio URLs</h3>
+      <div style="display: grid; gap: 10px; margin-top: 8px;">
+        <div class="deploy-card">
+          <h4>Production (K8s)</h4>
+          <div class="deploy-url">http://enrichment-studio.enrichment-studio-app.svc.cluster.local:8000</div>
+        </div>
+        <div class="deploy-card">
+          <h4>Local Development</h4>
+          <div class="deploy-url">http://localhost:8001 <span style="color: var(--text3); font-size: 0.75rem;">(or ENRICHMENT_STUDIO_URL env var)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="classify-box" style="margin-top: 20px;">
+      <h3 style="margin-bottom: 8px; font-size: 0.95rem;">Asset Classification Logic</h3>
+      <p>For <code>/asset-status</code> and <code>status_by=assets</code> views: if <strong>any</strong> rule for an asset has category = <code>"failed"</code>, the entire asset status is <code>"failed"</code>. Otherwise, the asset is <code>"passed"</code>. Assets with null/empty qualified names are excluded.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Navigation
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const sections = document.querySelectorAll('.section');
+
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      navBtns.forEach(b => b.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('sec-' + btn.dataset.section).classList.add('active');
+    });
+  });
+
+  // Endpoints data
+  const endpoints = [
+    { path: '/rule-status', purpose: 'Donut chart — pass/fail/inactive counts', service: 'get_domain_rules_summary', sql: '_SUMMARY_SQL' },
+    { path: '/assets', purpose: 'Asset counts by type (Table, View, MaterialisedView)', service: 'get_domain_assets_overview', sql: '_DOMAIN_ASSETS_SQL' },
+    { path: '/connectors', purpose: 'Unique connector names', service: 'get_domain_assets_connectors', sql: '_DOMAIN_ASSETS_SQL' },
+    { path: '/dimensions', purpose: 'Per-dimension aggregated counts', service: 'get_dimensions_summary / get_dimensions_asset_summary', sql: '_DETAIL_SQL' },
+    { path: '/dimensions/{dim}/templates', purpose: 'Per-template counts within a dimension', service: 'get_dimension_templates / get_dimension_templates_asset_summary', sql: '_DETAIL_SQL' },
+    { path: '/rules', purpose: 'Paginated rule GUIDs with distribution', service: 'get_rules_by_status', sql: '_DETAIL_SQL' },
+    { path: '/asset-status', purpose: 'Paginated assets classified as passed/failed', service: 'get_assets_by_status', sql: '_DETAIL_SQL' },
+  ];
+
+  const grid = document.getElementById('endpointGrid');
+  endpoints.forEach(ep => {
+    const card = document.createElement('div');
+    card.className = 'endpoint-card';
+    card.innerHTML = `
+      <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="endpoint-left">
+          <span class="method">GET</span>
+          <span class="endpoint-path">${ep.path}</span>
+        </div>
+        <span class="endpoint-chevron">▾</span>
+      </div>
+      <div style="color: var(--text3); font-size: 0.82rem; margin-top: 4px;">${ep.purpose}</div>
+      <div class="endpoint-detail">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Service Function</label>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--cyan);">${ep.service}</span>
+          </div>
+          <div class="detail-item">
+            <label>SQL Query</label>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--pink);">${ep.sql}</span>
+          </div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Copy
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  }
+</script>
+</body>
+</html>
